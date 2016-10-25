@@ -1,0 +1,6 @@
+# npm libraries
+node_modules/
+
+
+# bower libraries
+public/js/lib/
