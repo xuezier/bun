@@ -40,6 +40,7 @@ class STYLER extends eventEmitter {
   }
 
   compileSass(path) {
+    console.log('a')
     let self = this;
     return new Promise((resolve, reject) => {
       console.time(`第一次编译scss文件 ${path}`.rainbow);
@@ -63,18 +64,20 @@ class STYLER extends eventEmitter {
 
   compileLess(path) {
     let self = this;
-    console.time(`第一次编译less文件 ${path}`.rainbow);
-    less.render(fs.readFileSync(path).toString('UTF-8'), { compress: true }, function(err, result) {
-      if (err) {
-        console.timeEnd(`第一次编译less文件 ${path}`.rainbow);
-        console.error(`第一次编译文件出错 ${path}`.red);
-        reject(err);
-      } else {
-        console.timeEnd(`编译less文件 ${path}`.rainbow);
-        let contentType = mimeTypes.contentType('.css');
-        self.setMap(path, { 'content-type': contentType, content: result.css.toString('utf-8') });
-        resolve(self.getMap(path));
-      }
+    return new Promise((resolve, reject) => {
+      console.time(`第一次编译less文件 ${path}`.rainbow);
+      less.render(fs.readFileSync(path).toString('UTF-8'), { compress: true }, function(err, result) {
+        if (err) {
+          console.timeEnd(`第一次编译less文件 ${path}`.rainbow);
+          console.error(`第一次编译文件出错 ${path}`.red);
+          reject(err);
+        } else {
+          console.timeEnd(`编译less文件 ${path}`.rainbow);
+          let contentType = mimeTypes.contentType('.css');
+          self.setMap(path, { 'content-type': contentType, content: result.css.toString('utf-8') });
+          resolve(self.getMap(path));
+        }
+      });
     });
   }
 }

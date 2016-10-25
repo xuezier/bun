@@ -16,5 +16,8 @@
     "mime-types": "^2.1.12",
     "node-sass": "^3.10.1",
     "uglify-js": "^2.7.4"
+  },
+  "devDependencies": {
+    "watch": "^1.0.1"
   }
 }

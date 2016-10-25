@@ -1,9 +1,13 @@
 'use strict';
 let Path = require('path');
+let fs = require('fs');
 
 let cacher = require('./lib/cacher');
 let styler = require('./lib/styler')(cacher);
 let minifier = require('./lib/minifier')(cacher);
+require('./lib/watcher')(cacher, styler);
+
+let co = require('co');
 
 let express = require('express');
 const bun = express();
@@ -16,12 +20,29 @@ bun.use((req, res, next) => {
   next();
 });
 
+// check if file is exists
+bun.use((req, res, next) => {
+  let source_url = req.url;
+
+  if (!source_url.indexOf('.html') > 0) return next();
+
+  let flag = fs.existsSync(`public${source_url}`);
+  if (flag) next();
+  else {
+    co(function*() {
+      let nofoundpage = yield _emit_404_page();
+      res.set('Content-Type', 'text/html').end(nofoundpage.content);
+    }).catch(e => { next(e); });
+  }
+});
+
 // fliter style file and compile to next middleware
 bun.use((req, res, next) => {
   let source_url = req.url;
   let styleMap = ['.scss', '.sass', '.css', '.less'];
   if (styleMap.indexOf(Path.extname(source_url)) > -1) {
-    styler.compileStyleSheet(`public${source_url}`).then(result => {
+    co(function*() {
+      yield styler.compileStyleSheet(`public${source_url}`);
       next();
     }).catch(e => { next(e); });
   } else next();
@@ -34,8 +55,13 @@ bun.use((req, res, next) => {
   next();
 });
 
-// bun.use(bun.filter_request);
+bun.get('/', (req, res, next) => {
+  console.log('heiheihei');
+  res.sendFile(`${bun.options.__baseroot__}/${bun.options.__basepage__}`);
+  next();
+});
 
+// file sender
 bun.all('*', (req, res, next) => {
   let host = req.headers['host'];
   let referer = req.headers['referer'] || `${bun.options.protocol||'http'}://${host}/`;
@@ -47,16 +73,11 @@ bun.all('*', (req, res, next) => {
   req.headers['protocol'] = protocol;
   req.headers['referer-host'] = host;
   req.headers['origin'] = origin;
-
-  cacher.getFileFromCache(`public${req.url}`).then(page => {
+  co(function*() {
+    let page = yield cacher.getFileFromCache(`public${req.url}`);
     res.set('Content-Type', page['content-type']).end(page.content);
     next();
-  }).catch(e => {
-    _emit_404_page().then(nofoundpage => {
-      res.set('Content-Type', 'text/html').end(nofoundpage);
-      next();
-    }).catch(e => { next(e); });
-  });
+  }).catch(e => { next(e); });
 });
 
 function _emit_404_page() {

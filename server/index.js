@@ -7,6 +7,7 @@ let path = require('path');
 
 let bun = require('./bun');
 bun.options = {
+  __runmodel__: 'dev',
   __protocol__: 'http',
   __basepage__: 'app.html',
   __baseroot__: path.join(`${__dirname}/../public`).replace(/\\/g, '/')
